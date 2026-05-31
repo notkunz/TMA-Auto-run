@@ -1,36 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import Groq from 'groq-sdk'
 import { NextResponse } from 'next/server'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
-
-async function createGroqChatCompletion(options: {
-  model: string
-  messages: Array<{ role: string; content: string }>
-  max_tokens?: number
-}) {
-  const apiKey = process.env.GROQ_API_KEY
-  if (!apiKey) throw new Error('Missing GROQ_API_KEY')
-
-  const response = await fetch('https://api.groq.ai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`
-    },
-    body: JSON.stringify(options)
-  })
-
-  if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(`Groq API error: ${response.status} ${errorText}`)
-  }
-
-  return response.json()
-}
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! })
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
