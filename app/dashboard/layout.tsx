@@ -49,7 +49,6 @@ export default function VIPLayout({ children }: { children: React.ReactNode }) {
           </button>
           <div>
             <span className="font-bold text-yellow-400">👑 Rose Gold</span>
-            <span className="text-gray-500 text-xs ml-2">Auto TMA</span>
           </div>
         </div>
         <div className="flex items-center gap-3">
