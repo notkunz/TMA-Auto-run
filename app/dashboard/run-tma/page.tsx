@@ -173,22 +173,23 @@ const searchInternet = async (index: number) => {
           {error && (
             <p className="bg-red-900/50 text-red-400 text-sm p-3 rounded-lg mb-4">{error}</p>
           )}
-
-          <div className="space-y-3 mb-4">
-            <input
-              placeholder="NOUN Matric Number (e.g. NOU123456789)"
-              value={matric}
-              onChange={e => setMatric(e.target.value.toUpperCase())}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-yellow-500"
-            />
-            <input
-              type="password"
-              placeholder="NOUN Portal Password"
-              value={nounPassword}
-              onChange={e => setNounPassword(e.target.value)}
-              className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-yellow-500"
-            />
-          </div>
+          
+<form onSubmit={e => { e.preventDefault(); handleRun() }} className="space-y-3 mb-4">
+  <input
+    placeholder="NOUN Matric Number (e.g. NOU123456789)"
+    value={matric}
+    onChange={e => setMatric(e.target.value.toUpperCase())}
+    className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-yellow-500"
+  />
+  <input
+    type="password"
+    placeholder="NOUN Portal Password"
+    value={nounPassword}
+    onChange={e => setNounPassword(e.target.value)}
+    className="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 text-sm text-white placeholder-gray-400 focus:outline-none focus:border-yellow-500"
+    autoComplete="current-password"
+  />
+</form>
 
           {/* TMA Round Selection */}
           <p className="text-gray-400 text-xs mb-2">Select TMA Round</p>

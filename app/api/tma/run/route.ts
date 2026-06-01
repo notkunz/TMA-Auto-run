@@ -205,19 +205,45 @@ async function triggerScrape(
       const courseCode = quiz.course_code || 'UNKNOWN'
       const courseTitle = quiz.title || courseCode
 
-      const { data: course } = await supabaseAdmin
-        .from('courses')
-        .select('id, shared_material_code, course_code')
-        .ilike('course_code', `%${courseCode}%`)
-        .limit(1)
-        .single() as { data: any }
+const cleanCode = courseCode.replace(/\s+/g, '')
+const { data: course } = await supabaseAdmin
+  .from('courses')
+  .select('id, shared_material_code, course_code')
+  .or(`course_code.ilike.%${cleanCode}%,course_code.ilike.%${courseCode}%`)
+  .limit(1)
+  .single() as { data: any }
 
       const materialCode = course?.shared_material_code || courseCode
 
       for (const q of quiz.questions.slice(0, 10)) {
         let bankHit = null
+        let answer = ''
 
         if (course?.id) {
+
+          const { data: existing } = await supabaseAdmin
+    .from('question_bank')
+    .select('id')
+    .eq('course_id', course.id)
+    .ilike('question_text', `%${q.questionText.slice(0, 80)}%`)
+    .single() as { data: any }
+
+  if (!existing) {
+    const { error: insertError } = await supabaseAdmin
+      .from('question_bank')
+      .insert({
+        course_id: course.id,
+        question_text: q.questionText,
+        answer_text: answer,
+        source: 'course_material',
+        contributed_by: userId
+      })
+    if (insertError) {
+      console.error('Question bank insert error:', insertError.message)
+    } else {
+      console.log('Saved to question bank:', q.questionText.slice(0, 50))
+    }
+  }
           const { data: bankEntries } = await supabaseAdmin
             .from('question_bank')
             .select('id, question_text, answer_text, times_asked')

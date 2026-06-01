@@ -36,6 +36,7 @@ export default function VIPLayout({ children }: { children: React.ReactNode }) {
     { label: '🚀 Begin TMA', href: '/dashboard/run-tma' },
     { label: '📋 My Results', href: '/dashboard/results' },
     { label: '🪙 Tokens', href: '/dashboard/tokens' },
+    { label: '🆘 Support', href: '/dashboard/support' },
   ]
 
   return (
