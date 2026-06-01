@@ -63,7 +63,7 @@ export default function SupportPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="bg-white rounded-xl border shadow-sm p-5 space-y-4">
+        <div className="text-2xl font-bold text-gray-800 mb-1">
           <div>
             <label className="text-xs font-semibold text-gray-500 mb-1 block">Category</label>
             <select
