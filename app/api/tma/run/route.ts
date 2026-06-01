@@ -132,6 +132,14 @@ export async function POST(req: Request) {
   }
 }
 
+async function updateLog(runId: string, message: string) {
+  console.log(message)
+  await supabaseAdmin.rpc('append_run_log', {
+    p_run_id: runId,
+    p_message: message
+  })
+}
+
 async function triggerScrape(
   runId: string,
   matric: string,
@@ -139,29 +147,26 @@ async function triggerScrape(
   tmaRound: string,
   userId: string
 ) {
-  try {
+ try {
     await supabaseAdmin.from('vip_runs')
-      .update({ status: 'running' })
-      .eq('id', runId)
+      .update({ status: 'running' }).eq('id', runId)
 
-    console.log('Calling scraper:', process.env.SCRAPER_URL)
+    await updateLog(runId, '🔄 Connecting to NOUN portal...')
 
     const scraperRes = await fetch(`${process.env.SCRAPER_URL}/scrape-tma`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        matric,
-        password: nounPassword,
+        matric, password: nounPassword,
         secret: process.env.SCRAPER_SECRET,
         tma_round: tmaRound
       })
     })
 
     if (!scraperRes.ok) {
-      const errorText = await scraperRes.text()
-      console.error('Scraper HTTP error:', errorText)
+      await updateLog(runId, '❌ Failed to connect to NOUN portal')
       await supabaseAdmin.from('vip_runs')
-        .update({ status: 'failed', error_message: 'Could not connect to NOUN portal' })
+        .update({ status: 'failed', error_message: 'Could not connect' })
         .eq('id', runId)
       return
     }
@@ -169,41 +174,39 @@ async function triggerScrape(
     const scraperData = await scraperRes.json()
 
     if (scraperData.error) {
+      await updateLog(runId, `❌ ${scraperData.error}`)
       await supabaseAdmin.from('vip_runs')
         .update({ status: 'failed', error_message: scraperData.error })
         .eq('id', runId)
       return
     }
 
-    if (!scraperData.quizzes || scraperData.quizzes.length === 0) {
+    if (!scraperData.quizzes?.length) {
+      await updateLog(runId, `❌ No ${tmaRound} found on your portal`)
       await supabaseAdmin.from('vip_runs')
-        .update({
-          status: 'failed',
-          error_message: `No ${tmaRound} found on your NOUN portal. Make sure the TMA is open.`
-        })
+        .update({ status: 'failed', error_message: `No ${tmaRound} found` })
         .eq('id', runId)
       return
     }
 
-    // Scraping succeeded — now deduct token
-    await supabaseAdmin.rpc('debit_token_wallet', {
-      p_user_id: userId,
-      p_amount: 1
-    })
+    await updateLog(runId, `✅ Logged in successfully`)
+    await updateLog(runId, `📚 Found ${tmaRound} for ${scraperData.quizzes.length} course(s)`)
+
+    // Deduct token
+    await supabaseAdmin.rpc('debit_token_wallet', { p_user_id: userId, p_amount: 1 })
     await supabaseAdmin.from('token_transactions').insert({
-      user_id: userId,
-      type: 'debit',
-      amount: 1,
-      description: `Used 1 token for ${tmaRound}`,
-      status: 'success'
+      user_id: userId, type: 'debit', amount: 1,
+      description: `Used 1 token for ${tmaRound}`, status: 'success'
     })
 
-    // Answer all questions
+    await updateLog(runId, '🪙 Token deducted')
+    await updateLog(runId, '🤖 AI is answering questions...')
+
     const allResults: any[] = []
 
     for (const quiz of scraperData.quizzes) {
       const courseCode = quiz.course_code || 'UNKNOWN'
-      const courseTitle = quiz.title || courseCode
+      await updateLog(runId, `📖 Answering ${courseCode}...`)
 
 const cleanCode = courseCode.replace(/\s+/g, '')
 const { data: course } = await supabaseAdmin
@@ -213,6 +216,7 @@ const { data: course } = await supabaseAdmin
   .limit(1)
   .single() as { data: any }
 
+      const courseTitle = quiz.course_title || course?.course_code || courseCode
       const materialCode = course?.shared_material_code || courseCode
 
       for (const q of quiz.questions.slice(0, 10)) {
@@ -362,16 +366,16 @@ RULES:
       }
     }
 
+ await updateLog(runId, `🎉 Done! ${allResults.length} questions answered`)
+
     await supabaseAdmin.from('vip_runs').update({
       status: 'completed',
       results: allResults,
       completed_at: new Date().toISOString()
     }).eq('id', runId)
 
-    console.log(`Run ${runId} completed with ${allResults.length} answers`)
-
   } catch (err: any) {
-    console.error('Background scrape error:', err)
+    await updateLog(runId, `❌ Error: ${err.message}`)
     await refundToken(userId, runId, err.message)
   }
 }

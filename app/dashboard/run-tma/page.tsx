@@ -29,7 +29,8 @@ function RunTMAContent() {
   const [runId, setRunId] = useState<string | null>(null)
   const [phase, setPhase] = useState<'form' | 'scraping' | 'answering' | 'done'>('form')
   const [userId, setUserId] = useState<string | null>(null)
-
+  const [statusLog, setStatusLogState] = useState<string[]>([])
+  
   useEffect(() => { loadTokens() }, [])
 
   const loadTokens = async () => {
@@ -70,15 +71,21 @@ function RunTMAContent() {
   setRunId(data.run_id)
 
   // Poll for results every 5 seconds
-  const pollInterval = setInterval(async () => {
+const pollInterval = setInterval(async () => {
+  try {
     const statusRes = await fetch(`/api/tma/run-status?run_id=${data.run_id}`)
     const statusData = await statusRes.json()
 
     if (!statusData) return
-    
-    if (statusData.status === 'running') {
-      setPhase('answering')
+
+    // Update live log
+    if (statusData.status_log?.length > 0) {
+      setStatusLogState(statusData.status_log)
+      // also mirror to external updater for UI toast
+      try { setStatusLog(statusData.status_log) } catch (e) { /* noop if unavailable */ }
     }
+
+    if (statusData.status === 'running') setPhase('answering')
 
     if (statusData.status === 'completed') {
       clearInterval(pollInterval)
@@ -94,7 +101,10 @@ function RunTMAContent() {
       setRunning(false)
       setPhase('form')
     }
-  }, 5000)
+  } catch (e) {
+    console.error('Poll error:', e)
+  }
+}, 3000)
 }
 
 const searchInternet = async (index: number) => {
@@ -173,7 +183,7 @@ const searchInternet = async (index: number) => {
           {error && (
             <p className="bg-red-900/50 text-red-400 text-sm p-3 rounded-lg mb-4">{error}</p>
           )}
-          
+
 <form onSubmit={e => { e.preventDefault(); handleRun() }} className="space-y-3 mb-4">
   <input
     placeholder="NOUN Matric Number (e.g. NOU123456789)"
@@ -226,14 +236,47 @@ const searchInternet = async (index: number) => {
       )}
 
       {/* Loading States */}
-      {phase === 'scraping' && (
-        <div className="bg-gray-800 rounded-xl p-8 text-center mb-6">
-          <p className="text-4xl mb-4 animate-pulse">🤖</p>
-          <p className="text-yellow-400 font-bold text-lg mb-2">Logging into NOUN portal...</p>
-          <p className="text-gray-400 text-sm">Reading your TMA questions across all courses</p>
-          <p className="text-gray-500 text-xs mt-2">This might take a while, please be patient.</p>
-        </div>
+{(phase === 'scraping' || phase === 'answering') && (
+  <div className="bg-gray-800 rounded-xl p-6 mb-6">
+    <div className="flex items-center gap-3 mb-4">
+      <div style={{
+        width: '12px', height: '12px', borderRadius: '50%',
+        background: '#eab308',
+        animation: 'pulse 1.5s infinite'
+      }} />
+      <p className="text-yellow-400 font-bold">
+        {phase === 'scraping' ? 'Connecting to NOUN portal...' : 'Questions are being answered...'}
+      </p>
+    </div>
+
+    {/* Live log */}
+    <div style={{
+      background: '#0f172a', borderRadius: '10px',
+      padding: '16px', minHeight: '120px',
+      fontFamily: 'monospace', fontSize: '13px'
+    }}>
+      {statusLog.length === 0 ? (
+        <p style={{ color: '#6b7280' }}>Initializing...</p>
+      ) : (
+        statusLog.map((log, i) => (
+          <p key={i} style={{
+            color: log.startsWith('❌') ? '#f87171' :
+                   log.startsWith('✅') ? '#4ade80' :
+                   log.startsWith('🎉') ? '#facc15' : '#94a3b8',
+            margin: '2px 0'
+          }}>
+            {log}
+          </p>
+        ))
       )}
+      <span style={{ color: '#6b7280', animation: 'pulse 1s infinite' }}>▊</span>
+    </div>
+
+    <p className="text-gray-500 text-xs mt-3 text-center">
+      Do not close this page
+    </p>
+  </div>
+)}
 
       {phase === 'answering' && (
         <div className="bg-gray-800 rounded-xl p-8 text-center mb-6">
@@ -364,4 +407,46 @@ export default function RunTMAPage() {
       <RunTMAContent />
     </Suspense>
   )
+}
+
+function setStatusLog(status_log: any) {
+  // status_log is expected to be an array of strings (progress messages)
+  try {
+    const messages = Array.isArray(status_log) ? status_log : [String(status_log)]
+    // log to console for debugging
+    messages.forEach(m => console.info('[TMA STATUS]', m))
+
+    // update (or create) a small status element in the document so users see live updates
+    if (typeof document !== 'undefined') {
+      let el = document.getElementById('tma-status-log') as HTMLDivElement | null
+      if (!el) {
+        el = document.createElement('div')
+        el.id = 'tma-status-log'
+        el.style.position = 'fixed'
+        el.style.right = '16px'
+        el.style.bottom = '16px'
+        el.style.zIndex = '9999'
+        el.style.background = 'rgba(17,24,39,0.8)'
+        el.style.color = '#f1f5f9'
+        el.style.padding = '8px 12px'
+        el.style.borderRadius = '8px'
+        el.style.fontSize = '12px'
+        el.style.maxWidth = '320px'
+        el.style.boxShadow = '0 6px 18px rgba(0,0,0,0.4)'
+        document.body.appendChild(el)
+      }
+
+      // show only the last few messages
+      el.textContent = messages.slice(-3).join(' \u2022 ')
+
+      // auto-hide after a short time
+      window.clearTimeout((el as any)._hideTimeout)
+      ;(el as any)._hideTimeout = window.setTimeout(() => {
+        if (el) el.style.opacity = '0'
+        window.setTimeout(() => { if (el && el.parentNode) el.parentNode.removeChild(el) }, 400)
+      }, 5000)
+    }
+  } catch (e) {
+    console.error('setStatusLog error', e)
+  }
 }

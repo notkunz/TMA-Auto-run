@@ -14,7 +14,7 @@ export async function GET(req: Request) {
 
   const { data: run } = await supabaseAdmin
     .from('vip_runs')
-    .select('status, results, error_message')
+    .select('status, results, error_message, status_log')
     .eq('id', run_id)
     .single() as { data: any }
 
