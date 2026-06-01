@@ -36,7 +36,6 @@ export default function VIPLayout({ children }: { children: React.ReactNode }) {
     { label: '🚀 Begin TMA', href: '/dashboard/run-tma' },
     { label: '📋 My Results', href: '/dashboard/results' },
     { label: '🪙 Tokens', href: '/dashboard/tokens' },
-    { label: '👤 Profile', href: '/dashboard/profile' },
   ]
 
   return (
@@ -49,7 +48,7 @@ export default function VIPLayout({ children }: { children: React.ReactNode }) {
             {open ? '✕' : '☰'}
           </button>
           <div>
-            <span className="font-bold text-yellow-400">👑 NTA VIP</span>
+            <span className="font-bold text-yellow-400">👑 Rose Gold</span>
             <span className="text-gray-500 text-xs ml-2">Auto TMA</span>
           </div>
         </div>

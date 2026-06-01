@@ -147,7 +147,7 @@ const searchInternet = async (index: number) => {
     <div className="max-w-3xl mx-auto">
       <h2 className="text-2xl font-bold text-yellow-400 mb-1">🚀 Begin TMA</h2>
       <p className="text-gray-400 text-sm mb-6">
-        Auto-answers all your TMA questions across all courses
+        Begin your session and relax while Rose Gold answers your TMA questions. Make sure your TMA is open on the NOUN portal.
       </p>
 
       {/* Token warning */}
@@ -230,7 +230,7 @@ const searchInternet = async (index: number) => {
           <p className="text-4xl mb-4 animate-pulse">🤖</p>
           <p className="text-yellow-400 font-bold text-lg mb-2">Logging into NOUN portal...</p>
           <p className="text-gray-400 text-sm">Reading your TMA questions across all courses</p>
-          <p className="text-gray-500 text-xs mt-2">This takes 30-60 seconds</p>
+          <p className="text-gray-500 text-xs mt-2">This might take a while, please be patient.</p>
         </div>
       )}
 
@@ -238,7 +238,7 @@ const searchInternet = async (index: number) => {
         <div className="bg-gray-800 rounded-xl p-8 text-center mb-6">
           <p className="text-4xl mb-4 animate-pulse">💡</p>
           <p className="text-yellow-400 font-bold text-lg mb-2">Questions are being answered...</p>
-          <p className="text-gray-400 text-sm">Searching course materials for each answer</p>
+          <p className="text-gray-400 text-sm">Preparing your answers.</p>
         </div>
       )}
 

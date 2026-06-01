@@ -31,8 +31,8 @@ export default function VIPSignupPage() {
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
       <div className="bg-gray-800 rounded-2xl shadow-xl p-8 w-full max-w-md border border-yellow-500/30">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-yellow-400">Join NTA</h1>
-          <p className="text-gray-400 text-sm mt-1">Auto TMA Assistant</p>
+          <h1 className="text-2xl font-bold text-yellow-400">Join Rose Gold</h1>
+          <p className="text-gray-400 text-sm mt-1">Your Assistant</p>
         </div>
 
         {error && (

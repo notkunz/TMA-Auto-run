@@ -51,7 +51,7 @@ export default function VIPDashboard() {
           </button>
         </div>
         <div className="bg-gray-800 border border-yellow-500/20 rounded-xl p-5">
-          <p className="text-gray-400 text-xs mb-1">TMA Runs</p>
+          <p className="text-gray-400 text-xs mb-1">TMA Sessions</p>
           <p className="text-3xl font-bold text-white">{recentRuns.length}</p>
           <p className="text-gray-500 text-xs mt-1">total sessions</p>
         </div>
@@ -76,9 +76,9 @@ export default function VIPDashboard() {
 
       {/* Recent Runs */}
       <div className="bg-gray-800 rounded-xl p-5">
-        <h3 className="font-bold text-white mb-4">Recent TMA Runs</h3>
+        <h3 className="font-bold text-white mb-4">Recent TMA Sessions</h3>
         {recentRuns.length === 0 ? (
-          <p className="text-gray-500 text-sm">No runs yet. Buy a token and run your first TMA!</p>
+          <p className="text-gray-500 text-sm">No sessions yet. Buy a token to start your first TMA!</p>
         ) : (
           <div className="space-y-3">
             {recentRuns.map(run => (
