@@ -122,6 +122,7 @@ async function updateLog(runId: string, message: string) {
     p_message: message
   })
 }
+}
 
 /*async function triggerScrape(
   runId: string,
