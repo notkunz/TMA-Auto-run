@@ -99,8 +99,11 @@ export async function POST(req: Request) {
       .select()
       .single() as { data: any }
 
+
+      console.log('Calling Railway endpoint:', `${process.env.SCRAPER_URL}/run-full-tma`)
+console.log('Run ID:', run.id)
+console.log('User ID:', profile.id)
     // Start background scrape without awaiting
-// Replace triggerScrape call with:
 fetch(`${process.env.SCRAPER_URL}/run-full-tma`, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
@@ -112,7 +115,14 @@ fetch(`${process.env.SCRAPER_URL}/run-full-tma`, {
     run_id: run.id,
     user_id: profile.id
   })
-}).catch(err => console.error('Scraper call failed:', err))
+}).then(r => {
+  console.log('Railway response status:', r.status)
+  return r.json()
+}).then(d => {
+  console.log('Railway response:', JSON.stringify(d))
+}).catch(err => {
+  console.error('Railway failed fetch:', err.message)
+})
     return NextResponse.json({ run_id: run.id, status: 'started' })
   } catch (err) {
     console.error('Run error:', err)
