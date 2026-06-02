@@ -60,27 +60,6 @@ async function slidingWindowSearch(question: string, materialCode: string): Prom
   return found
 }
 
-async function refundToken(userId: string, runId: string, reason: string) {
-  try {
-    await supabaseAdmin.rpc('credit_token_wallet', {
-      p_user_id: userId,
-      p_amount: 1
-    })
-    await supabaseAdmin.from('token_transactions').insert({
-      user_id: userId,
-      type: 'credit',
-      amount: 1,
-      description: `Token refunded — ${reason}`,
-      status: 'success'
-    })
-    await supabaseAdmin.from('vip_runs')
-      .update({ status: 'failed', error_message: reason })
-      .eq('id', runId)
-  } catch (e) {
-    console.error('Refund error:', e)
-  }
-}
-
 export async function POST(req: Request) {
   try {
     const { matric, noun_password, tma_round } = await req.json()
@@ -121,15 +100,19 @@ export async function POST(req: Request) {
       .single() as { data: any }
 
     // Start background scrape without awaiting
-    triggerScrape(run.id, matric, noun_password, tma_round, profile.id)
-
-    // Return immediately so frontend can start polling
-    return NextResponse.json({ success: true, run_id: run.id, status: 'pending' })
-
-  } catch (err: any) {
-    console.error('VIP run error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
-  }
+// Replace triggerScrape call with:
+fetch(`${process.env.SCRAPER_URL}/run-full-tma`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    matric,
+    password: noun_password,
+    secret: process.env.SCRAPER_SECRET,
+    tma_round,
+    run_id: run.id,
+    user_id: profile.id
+  })
+}).catch(err => console.error('Scraper call failed:', err))
 }
 
 async function updateLog(runId: string, message: string) {
@@ -140,7 +123,7 @@ async function updateLog(runId: string, message: string) {
   })
 }
 
-async function triggerScrape(
+/*async function triggerScrape(
   runId: string,
   matric: string,
   nounPassword: string,
@@ -376,6 +359,5 @@ RULES:
 
   } catch (err: any) {
     await updateLog(runId, `❌ Error: ${err.message}`)
-    await refundToken(userId, runId, err.message)
   }
-}
+}*/
