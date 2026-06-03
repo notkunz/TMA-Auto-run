@@ -53,14 +53,13 @@ function RunTMAContent() {
   setResults([])
   setPhase('scraping')
 
-  const res = await fetch('/api/tma/run', {
+const res = await fetch('/api/tma/run', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ matric, noun_password: nounPassword, tma_round: tmaRound })
   })
 
   const data = await res.json()
-
   if (data.error) {
     setError(data.error)
     setRunning(false)
@@ -69,42 +68,65 @@ function RunTMAContent() {
   }
 
   setRunId(data.run_id)
+  // Save to sessionStorage so refresh recovers
+  sessionStorage.setItem('active_run_id', data.run_id)
+  setPhase('scraping')
+  startPolling(data.run_id)
+}
 
-  // Poll for results every 5 seconds
-const pollInterval = setInterval(async () => {
-  try {
-    const statusRes = await fetch(`/api/tma/run-status?run_id=${data.run_id}`)
-    const statusData = await statusRes.json()
+// Check for interrupted run on page load
+useEffect(() => {
+  const savedRunId = sessionStorage.getItem('active_run_id')
+  if (savedRunId) {
+    setRunId(savedRunId)
+    setPhase('scraping')
+    setRunning(true)
+    startPolling(savedRunId)
+  }
+}, [])
 
-    if (!statusData) return
-
-    // Update live log
-    if (statusData.status_log?.length > 0) {
-      setStatusLogState(statusData.status_log)
-      // also mirror to external updater for UI toast
-      try { setStatusLog(statusData.status_log) } catch (e) { /* noop if unavailable */ }
-    }
-
-    if (statusData.status === 'running') setPhase('answering')
-
-    if (statusData.status === 'completed') {
+// Extract polling into reusable function
+const startPolling = (runId: string) => {
+  let pollCount = 0
+  const pollInterval = setInterval(async () => {
+    pollCount++
+    if (pollCount > 72) { // 6 minutes max
       clearInterval(pollInterval)
-      setResults(statusData.results || [])
-      setRunning(false)
-      setPhase('done')
-      loadTokens()
-    }
-
-    if (statusData.status === 'failed') {
-      clearInterval(pollInterval)
-      setError(statusData.error_message || 'Something went wrong')
+      setError('Taking too long. Please try again.')
       setRunning(false)
       setPhase('form')
+      sessionStorage.removeItem('active_run_id')
+      return
     }
-  } catch (e) {
-    console.error('Poll error:', e)
-  }
-}, 3000)
+
+    try {
+      const statusRes = await fetch(`/api/tma/run-status?run_id=${runId}`)
+      const statusData = await statusRes.json()
+      if (!statusData) return
+
+      if (statusData.status_log?.length > 0) setStatusLog(statusData.status_log)
+      if (statusData.status === 'running') setPhase('answering')
+
+      if (statusData.status === 'completed') {
+        clearInterval(pollInterval)
+        sessionStorage.removeItem('active_run_id')
+        setResults(statusData.results || [])
+        setRunning(false)
+        setPhase('done')
+        loadTokens()
+      }
+
+      if (statusData.status === 'failed') {
+        clearInterval(pollInterval)
+        sessionStorage.removeItem('active_run_id')
+        setError(statusData.error_message || 'Something went wrong')
+        setRunning(false)
+        setPhase('form')
+      }
+    } catch (e) {
+      console.error('Poll error:', e)
+    }
+  }, 5000)
 }
 
 const searchInternet = async (index: number) => {
