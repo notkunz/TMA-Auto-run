@@ -115,6 +115,7 @@ fetch(`${process.env.SCRAPER_URL}/run-full-tma`, {
     run_id: run.id,
     user_id: profile.id
   })
+  
 }).then(r => {
   console.log('Railway response status:', r.status)
   return r.json()
