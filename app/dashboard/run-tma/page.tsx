@@ -90,7 +90,7 @@ const startPolling = (runId: string) => {
   let pollCount = 0
   const pollInterval = setInterval(async () => {
     pollCount++
-    if (pollCount > 72) { // 6minutes max
+    if (pollCount > 120) { // 12 minutes max
       clearInterval(pollInterval)
       setError('Taking too long. Please try again.')
       setRunning(false)
