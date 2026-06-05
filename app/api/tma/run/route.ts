@@ -32,10 +32,10 @@ export async function POST(req: Request) {
       .single() as { data: any }
 
     if (!tokenWallet || tokenWallet.balance < 1) {
-      return NextResponse.json({ error: 'Insufficient tokens. Buy tokens to continue.' }, { status: 400 })
+      return NextResponse.json({ error: 'Insufficient tokens.' }, { status: 400 })
     }
 
-    const { data: run } = await supabaseAdmin
+    const { data: run, error: runError } = await supabaseAdmin
       .from('vip_runs')
       .insert({
         user_id: profile.id,
@@ -45,29 +45,44 @@ export async function POST(req: Request) {
         tokens_used: 1
       })
       .select()
-      .single() as { data: any }
+      .single() as { data: any, error: any }
 
-    if (!run) return NextResponse.json({ error: 'Failed to create run' }, { status: 500 })
+    if (runError || !run) {
+      console.error('Run insert error:', runError)
+      return NextResponse.json({ error: 'Failed to create run' }, { status: 500 })
+    }
 
-    console.log('Calling Railway:', `${process.env.SCRAPER_URL}/run-full-tma`, 'run_id:', run.id)
+    console.log('Created run:', run.id, '— calling Railway...')
 
-    fetch(`${process.env.SCRAPER_URL}/run-full-tma`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        matric,
-        password: noun_password,
-        secret: process.env.SCRAPER_SECRET,
-        tma_round,
-        run_id: run.id,
-        user_id: profile.id
+    // AWAIT the Railway call directly — don't fire and forget
+    // Vercel kills background fetches after response is sent
+    const scraperPayload = {
+      matric,
+      password: noun_password,
+      secret: process.env.SCRAPER_SECRET,
+      tma_round,
+      run_id: run.id,
+      user_id: profile.id
+    }
+
+    try {
+      const scraperRes = await fetch(`${process.env.SCRAPER_URL}/run-full-tma`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(scraperPayload)
       })
-    }).then(r => {
-      console.log('Railway status:', r.status)
-    }).catch(err => {
-      console.error('Railway fetch failed:', err.message)
-    })
+      console.log('Railway responded:', scraperRes.status)
+    } catch (fetchErr: any) {
+      console.error('Railway fetch error:', fetchErr.message)
+      // Update run to failed if Railway unreachable
+      await supabaseAdmin.from('vip_runs')
+        .update({ status: 'failed', error_message: 'Could not reach scraper' })
+        .eq('id', run.id)
+      return NextResponse.json({ error: 'Could not reach scraper. Try again.' }, { status: 500 })
+    }
 
+    // Railway responds immediately with {status: 'started'}
+    // Actual work happens in Railway background
     return NextResponse.json({ run_id: run.id, status: 'started' })
 
   } catch (err: any) {
