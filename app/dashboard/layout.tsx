@@ -47,11 +47,11 @@ export default function VIPLayout({ children }: { children: React.ReactNode }) {
   }, [pathname, open])
 
   const navLinks = [
-    { label: '🏠 Dashboard', href: '/dashboard' },
-    { label: '🚀 Begin TMA', href: '/dashboard/run-tma' },
-    { label: '📋 My Results', href: '/dashboard/results' },
-    { label: '🪙 Tokens', href: '/dashboard/tokens' },
-    { label: '🆘 Support', href: '/dashboard/support' },
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Begin TMA', href: '/dashboard/run-tma' },
+    { label: 'My Results', href: '/dashboard/results' },
+    { label: 'Tokens', href: '/dashboard/tokens' },
+    { label: 'Support', href: '/dashboard/support' },
   ]
 
   return (
@@ -64,7 +64,7 @@ export default function VIPLayout({ children }: { children: React.ReactNode }) {
             {open ? '✕' : '☰'}
           </button>
           <div>
-            <span className="font-bold text-yellow-400">👑 Rose Gold</span>
+            <span className="font-bold text-yellow-400">Rose Gold</span>
           </div>
         </div>
         <div className="flex items-center gap-3">

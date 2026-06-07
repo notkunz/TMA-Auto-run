@@ -57,7 +57,7 @@ export default function VIPDashboard() {
   return (
     <div className="max-w-2xl mx-auto">
       <h2 className="text-2xl font-bold text-yellow-400 mb-1">
-        Welcome, {profile?.full_name?.split(' ')[0]} 👑
+        Welcome, {profile?.full_name?.split(' ')[0]}
       </h2>
       <p className="text-gray-500 text-sm mb-6">{profile?.matric_number}</p>
 
@@ -80,7 +80,7 @@ export default function VIPDashboard() {
 
       {/* Quick Actions */}
       <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6 mb-6">
-        <h3 className="font-bold text-yellow-400 mb-4">🚀 Quick Actions</h3>
+        <h3 className="font-bold text-yellow-400 mb-4">Quick Actions</h3>
         <div className="grid grid-cols-3 gap-3">
           {['TMA1', 'TMA2', 'TMA3'].map(tma => (
             <button key={tma}

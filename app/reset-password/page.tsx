@@ -19,7 +19,7 @@ export default function ResetPasswordPage() {
     setLoading(false)
 
     if (error) return setMessage('Error: ' + error.message)
-    setMessage('✅ Password updated! Redirecting...')
+    setMessage('Password updated! Redirecting...')
     setTimeout(() => router.push('/login'), 2000)
   }
 
@@ -27,7 +27,7 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
       <div className="bg-gray-800 rounded-2xl p-8 w-full max-w-sm border border-yellow-500/30">
         <h1 className="text-xl font-bold text-yellow-400 mb-6 text-center">
-          🔐 Set New Password
+          Set New Password
         </h1>
         {message && (
           <p className={`text-sm p-3 rounded-lg mb-4 ${

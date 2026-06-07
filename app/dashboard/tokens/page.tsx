@@ -84,7 +84,7 @@ function TokensContent() {
     })
     const data = await res.json()
     if (data.success) {
-      setMessage(`✅ ₦${data.amount} added to your wallet!`)
+      setMessage(`₦${data.amount} added to your wallet!`)
       setMessageType('success')
       loadData()
     }
@@ -110,7 +110,7 @@ function TokensContent() {
   const handleConvert = async () => {
     const cost = convertAmount * TOKEN_PRICE
     if (walletBalance < cost) {
-      setMessage(`❌ Insufficient wallet balance. You need ₦${cost.toLocaleString()} but have ₦${walletBalance.toLocaleString()}`)
+      setMessage(`Insufficient wallet balance. You need ₦${cost.toLocaleString()} but have ₦${walletBalance.toLocaleString()}`)
       setMessageType('error')
       return
     }
@@ -123,7 +123,7 @@ function TokensContent() {
     const data = await res.json()
     setConverting(false)
     if (data.success) {
-      setMessage(`✅ Converted ${convertAmount} token${convertAmount > 1 ? 's' : ''}! Cost: ₦${cost.toLocaleString()}`)
+      setMessage(`Converted ${convertAmount} token${convertAmount > 1 ? 's' : ''}! Cost: ₦${cost.toLocaleString()}`)
       setMessageType('success')
       loadData()
     } else {
@@ -190,7 +190,7 @@ function TokensContent() {
 
       {/* Convert to Tokens */}
       <div className="bg-gray-800 rounded-xl p-5 mb-6">
-        <h3 className="font-bold text-white mb-1">🔄 Convert to Tokens</h3>
+        <h3 className="font-bold text-white mb-1">Convert to Tokens</h3>
         <p className="text-gray-400 text-xs mb-4">₦500 = 1 Token • 1 Token = 1 TMA round</p>
 
         <div className="flex items-center gap-3 mb-3">
@@ -213,8 +213,8 @@ function TokensContent() {
           <p className="text-xl font-bold text-white">₦{nairaNeeded.toLocaleString()}</p>
           <p className={`text-xs mt-1 ${walletBalance >= nairaNeeded ? 'text-green-400' : 'text-red-400'}`}>
             {walletBalance >= nairaNeeded
-              ? `✅ You have ₦${walletBalance.toLocaleString()} — sufficient`
-              : `❌ Need ₦${(nairaNeeded - walletBalance).toLocaleString()} more`}
+              ? `You have ₦${walletBalance.toLocaleString()} — sufficient`
+              : `Need ₦${(nairaNeeded - walletBalance).toLocaleString()} more`}
           </p>
         </div>
 
