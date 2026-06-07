@@ -1,13 +1,22 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, usePathname } from 'next/navigation'
+
+type DashboardUser = {
+  id: number
+  full_name: string
+}
+
+type TokenWallet = {
+  balance: number
+}
 
 export default function VIPLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const supabase = createClient()
-  const [user, setUser] = useState<any>(null)
+  const supabase = useMemo(() => createClient(), [])
+  const [user, setUser] = useState<DashboardUser | null>(null)
   const [tokens, setTokens] = useState(0)
   const [open, setOpen] = useState(false)
 
@@ -18,18 +27,24 @@ export default function VIPLayout({ children }: { children: React.ReactNode }) {
 
       const { data: profile } = await supabase
         .from('users').select('id, full_name')
-        .eq('auth_id', user.id).single() as { data: any }
+        .eq('auth_id', user.id).single() as { data: DashboardUser | null }
+      if (!profile) return router.push('/login')
       setUser(profile)
 
       const { data: tokenWallet } = await supabase
         .from('token_wallets').select('balance')
-        .eq('user_id', profile?.id).single() as { data: any }
+        .eq('user_id', profile.id).single() as { data: TokenWallet | null }
       setTokens(tokenWallet?.balance || 0)
     }
     load()
-  }, [])
+  }, [router, supabase])
 
-  useEffect(() => { setOpen(false) }, [pathname])
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      if (open) setOpen(false)
+    }, 0)
+    return () => window.clearTimeout(timeout)
+  }, [pathname, open])
 
   const navLinks = [
     { label: '🏠 Dashboard', href: '/dashboard' },

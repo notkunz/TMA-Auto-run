@@ -1,14 +1,34 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
+type UserProfile = {
+  id: number
+  auth_id: string
+  full_name: string
+  matric_number: string
+}
+
+type TokenWallet = {
+  balance: number
+}
+
+type VipRun = {
+  id: number
+  user_id: number
+  tma_round: string
+  noun_matric: string
+  started_at: string
+  status: 'completed' | 'running' | 'failed' | string
+}
+
 export default function VIPDashboard() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
-  const [profile, setProfile] = useState<any>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
   const [tokens, setTokens] = useState(0)
-  const [recentRuns, setRecentRuns] = useState<any[]>([])
+  const [recentRuns, setRecentRuns] = useState<VipRun[]>([])
 
   useEffect(() => {
     const load = async () => {
@@ -16,11 +36,12 @@ export default function VIPDashboard() {
       if (!user) return
 
       const { data: p } = await supabase
-        .from('users').select('*').eq('auth_id', user.id).single() as { data: any }
+        .from('users').select('*').eq('auth_id', user.id).single() as { data: UserProfile | null }
+      if (!p) return
       setProfile(p)
 
       const { data: tw } = await supabase
-        .from('token_wallets').select('balance').eq('user_id', p.id).single() as { data: any }
+        .from('token_wallets').select('balance').eq('user_id', p.id).single() as { data: TokenWallet | null }
       setTokens(tw?.balance || 0)
 
       const { data: runs } = await supabase
@@ -31,7 +52,7 @@ export default function VIPDashboard() {
       setRecentRuns(runs || [])
     }
     load()
-  }, [])
+  }, [supabase])
 
   return (
     <div className="max-w-2xl mx-auto">
