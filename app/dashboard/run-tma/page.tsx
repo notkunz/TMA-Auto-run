@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
@@ -17,7 +17,7 @@ interface QuestionResult {
 }
 
 function RunTMAContent() {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const searchParams = useSearchParams()
   const [tokens, setTokens] = useState(0)
   const [matric, setMatric] = useState('')
@@ -28,22 +28,75 @@ function RunTMAContent() {
   const [results, setResults] = useState<QuestionResult[]>([])
   const [runId, setRunId] = useState<string | null>(null)
   const [phase, setPhase] = useState<'form' | 'scraping' | 'answering' | 'done'>('form')
-  const [userId, setUserId] = useState<string | null>(null)
-  const [statusLog, setStatusLogState] = useState<string[]>([])
+  const [, setUserId] = useState<string | null>(null)
+  const [statusLog, setStatusLog] = useState<string[]>([])
+  const pollRef = useRef<NodeJS.Timeout | null>(null)
   
-  useEffect(() => { loadTokens() }, [])
-
-  const loadTokens = async () => {
+  const loadTokens = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
     const { data: p } = await supabase
-      .from('users').select('id').eq('auth_id', user.id).single() as { data: any }
-    setUserId(p?.id)
+      .from('users').select('id').eq('auth_id', user.id).single() as { data: { id: string } | null }
+    setUserId(p?.id ?? null)
     const { data: tw } = await supabase
       .from('token_wallets').select('balance')
-      .eq('user_id', p?.id).single() as { data: any }
+      .eq('user_id', p?.id).single() as { data: { balance: number } | null }
     setTokens(tw?.balance || 0)
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      void loadTokens()
+    }, 0)
+
+    return () => window.clearTimeout(timeout)
+  }, [loadTokens])
+
+  const startPolling = useCallback((runId: string) => {
+    let pollCount = 0
+
+    pollRef.current = setInterval(async () => {
+      pollCount++
+      if (pollCount > 180) { // 12 minutes max
+        if (pollRef.current) clearInterval(pollRef.current)
+        setError('Taking too long. Please try again.')
+        setRunning(false)
+        setPhase('form')
+        sessionStorage.removeItem('active_run_id')
+        return
+      }
+
+      try {
+        const statusRes = await fetch(`/api/tma/run-status?run_id=${runId}`)
+        const statusData = await statusRes.json()
+        if (!statusData) return
+
+        if (statusData.status_log?.length > 0) {
+          setStatusLog(statusData.status_log)
+        }
+        if (statusData.status === 'running') setPhase('answering')
+
+        if (statusData.status === 'completed') {
+          if (pollRef.current) clearInterval(pollRef.current)
+          sessionStorage.removeItem('active_run_id')
+          setResults(statusData.results || [])
+          setRunning(false)
+          setPhase('done')
+          loadTokens()
+        }
+
+        if (statusData.status === 'failed') {
+          if (pollRef.current) clearInterval(pollRef.current)
+          sessionStorage.removeItem('active_run_id')
+          setError(statusData.error_message || 'Something went wrong')
+          setRunning(false)
+          setPhase('form')
+        }
+      } catch (e) {
+        console.error('Poll error:', e)
+      }
+    }, 5000)
+  }, [loadTokens])
 
   const handleRun = async () => {
   if (!matric || !nounPassword) return setError('Enter your NOUN matric and password')
@@ -76,58 +129,21 @@ const res = await fetch('/api/tma/run', {
 
 // Check for interrupted run on page load
 useEffect(() => {
-  const savedRunId = sessionStorage.getItem('active_run_id')
-  if (savedRunId) {
-    setRunId(savedRunId)
-    setPhase('scraping')
-    setRunning(true)
-    startPolling(savedRunId)
+  const timeout = window.setTimeout(() => {
+    const savedRunId = sessionStorage.getItem('active_run_id')
+    if (savedRunId) {
+      setRunId(savedRunId)
+      setPhase('scraping')
+      setRunning(true)
+      startPolling(savedRunId)
+    }
+  }, 0)
+
+  return () => {
+    window.clearTimeout(timeout)
+    if (pollRef.current) clearInterval(pollRef.current)
   }
-}, [])
-
-// Extract polling into reusable function
-const startPolling = (runId: string) => {
-  let pollCount = 0
-  const pollInterval = setInterval(async () => {
-    pollCount++
-    if (pollCount > 120) { // 12 minutes max
-      clearInterval(pollInterval)
-      setError('Taking too long. Please try again.')
-      setRunning(false)
-      setPhase('form')
-      sessionStorage.removeItem('active_run_id')
-      return
-    }
-
-    try {
-      const statusRes = await fetch(`/api/tma/run-status?run_id=${runId}`)
-      const statusData = await statusRes.json()
-      if (!statusData) return
-
-      if (statusData.status_log?.length > 0) setStatusLog(statusData.status_log)
-      if (statusData.status === 'running') setPhase('answering')
-
-      if (statusData.status === 'completed') {
-        clearInterval(pollInterval)
-        sessionStorage.removeItem('active_run_id')
-        setResults(statusData.results || [])
-        setRunning(false)
-        setPhase('done')
-        loadTokens()
-      }
-
-      if (statusData.status === 'failed') {
-        clearInterval(pollInterval)
-        sessionStorage.removeItem('active_run_id')
-        setError(statusData.error_message || 'Something went wrong')
-        setRunning(false)
-        setPhase('form')
-      }
-    } catch (e) {
-      console.error('Poll error:', e)
-    }
-  }, 5000)
-}
+}, [startPolling])
 
 const searchInternet = async (index: number) => {
   const q = results[index]
@@ -157,7 +173,7 @@ const searchInternet = async (index: number) => {
         internetLoading: false
       } : r
     ))
-  } catch (e) {
+  } catch {
     setResults(prev => prev.map((r, i) =>
       i === index ? {
         ...r,
@@ -300,13 +316,6 @@ const searchInternet = async (index: number) => {
   </div>
 )}
 
-      {phase === 'answering' && (
-        <div className="bg-gray-800 rounded-xl p-8 text-center mb-6">
-          <p className="text-4xl mb-4 animate-pulse">💡</p>
-          <p className="text-yellow-400 font-bold text-lg mb-2">Questions are being answered...</p>
-          <p className="text-gray-400 text-sm">Preparing your answers.</p>
-        </div>
-      )}
 
       {/* Results */}
       {phase === 'done' && results.length > 0 && (
@@ -350,29 +359,29 @@ const searchInternet = async (index: number) => {
                         {q.question}
                       </p>
 
-                      {q.source === 'not_found' ? (
-                        <div>
-                          <div className="flex items-center gap-3">
-                            <p className="text-red-400 text-xs italic">
-                              ⚠️ Answer not found in course material
-                            </p>
-                            {!q.internetAnswer && (
-                              <button
-                                onClick={() => searchInternet(globalIndex)}
-                                disabled={q.internetLoading}
-                                className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-full disabled:opacity-50 shrink-0">
-                                {q.internetLoading ? '⏳ Searching...' : '🌐 Use Internet'}
-                              </button>
-                            )}
-                          </div>
-                          {q.internetAnswer && (
-                            <div className="mt-2 bg-blue-900/30 border border-blue-500/30 rounded-lg p-3">
-                              <p className="text-xs text-blue-400 font-semibold mb-1">🌐 Internet Answer:</p>
-                              <p className="text-sm text-white font-bold">{q.internetAnswer}</p>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
+{q.source === 'not_found' ? (
+  <div>
+    <div className="flex items-center gap-3">
+      <p className="text-red-400 text-xs italic">
+        Answer not found in course material
+      </p>
+      {!q.internetAnswer && (
+        <button
+          onClick={() => searchInternet(globalIndex)}
+          disabled={q.internetLoading}
+          className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-full disabled:opacity-50 shrink-0">
+          {q.internetLoading ? 'Searching...' : 'Use Internet'}
+        </button>
+      )}
+    </div>
+    {q.internetAnswer && (
+      <div className="mt-2 bg-blue-900/30 border border-blue-500/30 rounded-lg p-3">
+        <p className="text-xs text-blue-400 font-semibold mb-1">Internet Answer:</p>
+        <p className="text-sm text-white font-bold">{q.internetAnswer}</p>
+      </div>
+    )}
+  </div>
+) : (
                         <div className={`rounded-lg p-3 ${
                           q.source === 'question_bank'
                             ? 'bg-purple-900/30 border border-purple-500/30'
@@ -431,44 +440,3 @@ export default function RunTMAPage() {
   )
 }
 
-function setStatusLog(status_log: any) {
-  // status_log is expected to be an array of strings (progress messages)
-  try {
-    const messages = Array.isArray(status_log) ? status_log : [String(status_log)]
-    // log to console for debugging
-    messages.forEach(m => console.info('[TMA STATUS]', m))
-
-    // update (or create) a small status element in the document so users see live updates
-    if (typeof document !== 'undefined') {
-      let el = document.getElementById('tma-status-log') as HTMLDivElement | null
-      if (!el) {
-        el = document.createElement('div')
-        el.id = 'tma-status-log'
-        el.style.position = 'fixed'
-        el.style.right = '16px'
-        el.style.bottom = '16px'
-        el.style.zIndex = '9999'
-        el.style.background = 'rgba(17,24,39,0.8)'
-        el.style.color = '#f1f5f9'
-        el.style.padding = '8px 12px'
-        el.style.borderRadius = '8px'
-        el.style.fontSize = '12px'
-        el.style.maxWidth = '320px'
-        el.style.boxShadow = '0 6px 18px rgba(0,0,0,0.4)'
-        document.body.appendChild(el)
-      }
-
-      // show only the last few messages
-      el.textContent = messages.slice(-3).join(' \u2022 ')
-
-      // auto-hide after a short time
-      window.clearTimeout((el as any)._hideTimeout)
-      ;(el as any)._hideTimeout = window.setTimeout(() => {
-        if (el) el.style.opacity = '0'
-        window.setTimeout(() => { if (el && el.parentNode) el.parentNode.removeChild(el) }, 400)
-      }, 5000)
-    }
-  } catch (e) {
-    console.error('setStatusLog error', e)
-  }
-}
