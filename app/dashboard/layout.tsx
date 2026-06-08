@@ -59,10 +59,19 @@ export default function VIPLayout({ children }: { children: React.ReactNode }) {
       {/* Navbar */}
       <nav className="bg-gray-800 border-b border-yellow-500/20 px-4 py-3 flex items-center justify-between fixed top-0 left-0 right-0 z-40">
         <div className="flex items-center gap-3">
-          <button onClick={() => setOpen(!open)}
-            className="p-2 rounded-lg hover:bg-gray-700 text-xl">
-            {open ? '✕' : '☰'}
-          </button>
+<button
+  onClick={() => setOpen(prev => !prev)}
+  style={{
+    background: 'rgba(255,255,255,0.15)',
+    border: 'none',
+    color: 'white',
+    fontSize: '20px',
+    cursor: 'pointer',
+    padding: '6px 10px',
+    borderRadius: '8px'
+  }}>
+  {open ? '✕' : '☰'}
+</button>
           <div>
             <span className="font-bold text-yellow-400">Rose Gold</span>
           </div>
@@ -79,23 +88,32 @@ export default function VIPLayout({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
 
-      {/* Overlay */}
-      {open && (
-        <div onClick={() => setOpen(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 45 }} />
-      )}
+{/* Overlay */}
+{open && (
+  <div
+    onClick={() => setOpen(false)}
+    style={{
+      position: 'fixed',
+      top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(0,0,0,0.6)',
+      zIndex: 45
+    }}
+  />
+)}
 
-      {/* Sidebar */}
-      <div style={{
-        position: 'fixed', top: 0, left: 0,
-        height: '100%', width: '260px',
-        background: '#111827',
-        borderRight: '1px solid rgba(234,179,8,0.2)',
-        zIndex: 50,
-        transform: open ? 'translateX(0)' : 'translateX(-260px)',
-        transition: 'transform 0.3s ease',
-        overflowY: 'auto'
-      }}>
+{/* Sidebar */}
+<div style={{
+  position: 'fixed',
+  top: 0, left: 0,
+  height: '100%',
+  width: '260px',
+  background: '#111827',
+  borderRight: '1px solid rgba(234,179,8,0.2)',
+  zIndex: 50,
+  transform: open ? 'translateX(0)' : 'translateX(-260px)',
+  transition: 'transform 0.3s ease',
+  overflowY: 'auto'
+}}>
         <div style={{ padding: '24px' }}>
           <button onClick={() => setOpen(false)}
             style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: '13px', cursor: 'pointer', marginBottom: '24px' }}>
