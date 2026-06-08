@@ -54,20 +54,23 @@ const groupedEntries = Object.entries(grouped)
                   <span className="text-yellow-400 font-bold mr-2">Q{q.questionNumber}.</span>
                   {q.question}
                 </p>
-                {q.source === 'not_found' ? (
+{q.source === 'not_found' ? (
   <div>
-    <p style={{ color: '#f87171', fontSize: '13px' }}>
-      Answer not found in course material
-    </p>
-    {q.internetAnswer && (
+    {q.internetAnswer ? (
       <div style={{
-        marginTop: '8px', background: 'rgba(59,130,246,0.1)',
+        background: 'rgba(59,130,246,0.1)',
         border: '1px solid rgba(59,130,246,0.3)',
         borderRadius: '8px', padding: '10px'
       }}>
-        <p style={{ fontSize: '11px', color: '#93c5fd', marginBottom: '4px' }}>Internet Answer:</p>
-        <p style={{ color: 'white', fontWeight: 600, fontSize: '14px' }}>{q.internetAnswer}</p>
+        <p style={{ fontSize: '11px', color: '#93c5fd', marginBottom: '4px' }}>
+          Internet Answer:
+        </p>
+        <p style={{ color: 'white', fontWeight: 600 }}>{q.internetAnswer}</p>
       </div>
+    ) : (
+      <p style={{ color: '#f87171', fontSize: '13px' }}>
+        Answer not found in course material
+      </p>
     )}
   </div>
 ) : (

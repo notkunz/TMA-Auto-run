@@ -34,7 +34,7 @@ export default function VIPLoginPage() {
 })
   setForgotLoading(false)
   if (error) setForgotMessage('Error: ' + error.message)
-  else setForgotMessage('✅ Reset link sent! Check your email.')
+  else setForgotMessage('Reset link sent! Check your email.')
 }
 
   return (

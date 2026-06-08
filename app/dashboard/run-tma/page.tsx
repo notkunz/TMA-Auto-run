@@ -160,7 +160,8 @@ const searchInternet = async (index: number) => {
         question: q.question,
         options: q.options,
         course_code: q.courseCode,
-        run_id: runId
+        run_id: runId,
+        question_number: q.questionNumber  // add this
       })
     })
     
