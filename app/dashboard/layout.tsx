@@ -46,10 +46,7 @@ export default function VIPLayout({ children }: { children: React.ReactNode }) {
   }, [router, supabase]);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => {
-      if (open) setOpen(false);
-    }, 0);
-    return () => window.clearTimeout(timeout);
+    setOpen(false);
   }, [pathname]);
 
   const navLinks = [
