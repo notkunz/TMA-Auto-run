@@ -55,6 +55,7 @@ export default function VIPLayout({ children }: { children: React.ReactNode }) {
     { label: "My Results", href: "/dashboard/results" },
     { label: "Tokens", href: "/dashboard/tokens" },
     { label: "Support", href: "/dashboard/support" },
+    { label: "Profile", href: "/dashboard/profile" },
   ];
 
   return (
