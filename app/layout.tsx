@@ -13,8 +13,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Rose Gold",
-  description: "TMA service for NOUN students.",
+  title: "Rose Gold — VIP TMA Assistant",
+  description: "Premium auto-TMA service for NOUN students.",
+  manifest: "/manifest.json",
+  themeColor: "#eab308",
   openGraph: {
     title: "Rose Gold",
     description: "TMA service for NOUN students.",
