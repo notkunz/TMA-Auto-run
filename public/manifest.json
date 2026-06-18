@@ -1,7 +1,7 @@
 {
-  "name": "Rose Gold VIP",
+  "name": "Rose Gold",
   "short_name": "Rose Gold",
-  "description": "Premium auto-TMA service for NOUN students",
+  "description": "Auto-TMA service for NOUN students",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#111827",
