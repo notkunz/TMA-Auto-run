@@ -19,6 +19,34 @@ export default function VIPLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<DashboardUser | null>(null);
   const [tokens, setTokens] = useState(0);
   const [open, setOpen] = useState(false);
+  const [showUpdateBanner, setShowUpdateBanner] = useState(false);
+
+  useEffect(() => {
+    const checkVersion = async () => {
+      try {
+        const res = await fetch("/version.json", { cache: "no-store" });
+        const data = await res.json();
+        const stored = localStorage.getItem("app_version");
+
+        if (stored && stored !== data.version) {
+          setShowUpdateBanner(true);
+        }
+        if (!stored) {
+          localStorage.setItem("app_version", data.version);
+        }
+      } catch (e) {
+        console.error("Version check failed", e);
+      }
+    };
+
+    checkVersion();
+    const interval = setInterval(checkVersion, 60000); // check every minute
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleUpdate = () => {
+    window.location.reload();
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -75,6 +103,44 @@ export default function VIPLayout({ children }: { children: React.ReactNode }) {
               borderRadius: "8px",
             }}
           >
+            {showUpdateBanner && (
+              <div
+                style={{
+                  position: "fixed",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  background: "#eab308",
+                  color: "#111827",
+                  padding: "10px 16px",
+                  textAlign: "center",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  zIndex: 100,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "12px",
+                }}
+              >
+                <span>A new update is available</span>
+                <button
+                  onClick={handleUpdate}
+                  style={{
+                    background: "#111827",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    padding: "4px 12px",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  }}
+                >
+                  Refresh Now
+                </button>
+              </div>
+            )}
             {open ? "✕" : "☰"}
           </button>
           <div>
