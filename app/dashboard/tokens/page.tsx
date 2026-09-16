@@ -1,16 +1,28 @@
 "use client";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useSearchParams } from "next/navigation";
 
 const TOKEN_PRICE = 5000;
 
+type TokenTransaction = {
+  id: string;
+  description: string;
+  created_at: string;
+  type: string;
+  amount: number;
+};
+
+type BalancePayload = {
+  balance?: number;
+};
+
 function TokensContent() {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const searchParams = useSearchParams();
   const [walletBalance, setWalletBalance] = useState(0);
   const [tokenBalance, setTokenBalance] = useState(0);
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<TokenTransaction[]>([]);
   const [topUpAmount, setTopUpAmount] = useState(1000);
   const [convertAmount, setConvertAmount] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -21,12 +33,69 @@ function TokensContent() {
   );
   const [profileId, setProfileId] = useState<string | null>(null);
 
+  const loadData = useCallback(async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: p } = (await supabase
+      .from("users")
+      .select("id")
+      .eq("auth_id", user.id)
+      .single()) as { data: { id: string } | null };
+    setProfileId(p?.id);
+
+    const { data: w } = (await supabase
+      .from("wallets")
+      .select("balance")
+      .eq("user_id", p?.id)
+      .single()) as { data: { balance: number } | null };
+    setWalletBalance(w?.balance || 0);
+
+    const { data: tw } = (await supabase
+      .from("token_wallets")
+      .select("balance")
+      .eq("user_id", p?.id)
+      .single()) as { data: { balance: number } | null };
+    setTokenBalance(tw?.balance || 0);
+
+    const { data: t } = await supabase
+      .from("token_transactions")
+      .select("*")
+      .eq("user_id", p?.id)
+      .order("created_at", { ascending: false })
+      .limit(10);
+    setTransactions((t || []) as TokenTransaction[]);
+  }, [supabase]);
+
+  const handleVerify = useCallback(
+    async (reference: string) => {
+      const res = await fetch("/api/tokens/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reference }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage(`₦${data.amount} added to your wallet!`);
+        setMessageType("success");
+        loadData();
+      }
+    },
+    [loadData],
+  );
+
   useEffect(() => {
-    loadData();
-    const verify = searchParams.get("verify");
-    const reference = searchParams.get("reference");
-    if (verify && reference) handleVerify(reference);
-  }, []);
+    const timeout = window.setTimeout(() => {
+      void loadData();
+      const verify = searchParams.get("verify");
+      const reference = searchParams.get("reference");
+      if (verify && reference) void handleVerify(reference);
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+  }, [handleVerify, loadData, searchParams]);
 
   useEffect(() => {
     if (!profileId) return;
@@ -40,8 +109,9 @@ function TokensContent() {
           table: "token_wallets",
           filter: `user_id=eq.${profileId}`,
         },
-        (payload: any) => {
-          setTokenBalance(payload.new.balance);
+        (payload) => {
+          const balance = (payload.new as BalancePayload).balance;
+          if (typeof balance === "number") setTokenBalance(balance);
         },
       )
       .on(
@@ -52,65 +122,16 @@ function TokensContent() {
           table: "wallets",
           filter: `user_id=eq.${profileId}`,
         },
-        (payload: any) => {
-          setWalletBalance(payload.new.balance);
+        (payload) => {
+          const balance = (payload.new as BalancePayload).balance;
+          if (typeof balance === "number") setWalletBalance(balance);
         },
       )
       .subscribe();
     return () => {
-      supabase.removeChannel(channel);
+      void supabase.removeChannel(channel);
     };
-  }, [profileId]);
-
-  const loadData = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: p } = (await supabase
-      .from("users")
-      .select("id")
-      .eq("auth_id", user.id)
-      .single()) as { data: any };
-    setProfileId(p?.id);
-
-    const { data: w } = (await supabase
-      .from("wallets")
-      .select("balance")
-      .eq("user_id", p?.id)
-      .single()) as { data: any };
-    setWalletBalance(w?.balance || 0);
-
-    const { data: tw } = (await supabase
-      .from("token_wallets")
-      .select("balance")
-      .eq("user_id", p?.id)
-      .single()) as { data: any };
-    setTokenBalance(tw?.balance || 0);
-
-    const { data: t } = await supabase
-      .from("token_transactions")
-      .select("*")
-      .eq("user_id", p?.id)
-      .order("created_at", { ascending: false })
-      .limit(10);
-    setTransactions(t || []);
-  };
-
-  const handleVerify = async (reference: string) => {
-    const res = await fetch("/api/tokens/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reference }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      setMessage(`₦${data.amount} added to your wallet!`);
-      setMessageType("success");
-      loadData();
-    }
-  };
+  }, [profileId, supabase]);
 
   const handleTopUp = async () => {
     if (topUpAmount < 100) return;

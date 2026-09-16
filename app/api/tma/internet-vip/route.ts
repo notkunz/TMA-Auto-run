@@ -8,6 +8,19 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
+type StoredResult = {
+  questionNumber: number;
+  question: string;
+  answer?: string;
+  internetAnswer?: string;
+  source?: string;
+  [key: string]: unknown;
+};
+
+type RunResults = {
+  results: StoredResult[] | null;
+};
+
 export async function POST(req: Request) {
   try {
     const { question, options, course_code, run_id, question_number } =
@@ -49,10 +62,10 @@ Reply with ONLY the letter and option text e.g "C. Radio rural forum"`,
         .from("vip_runs")
         .select("results")
         .eq("id", run_id)
-        .single()) as { data: any };
+        .single()) as { data: RunResults | null };
 
       if (run?.results) {
-        const updatedResults = run.results.map((r: any) => {
+        const updatedResults = run.results.map((r) => {
           if (r.questionNumber === question_number && r.question === question) {
             return {
               ...r,
@@ -72,7 +85,8 @@ Reply with ONLY the letter and option text e.g "C. Radio rural forum"`,
     }
 
     return NextResponse.json({ answer });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
