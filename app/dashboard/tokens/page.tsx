@@ -3,7 +3,7 @@ import { Suspense, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useSearchParams } from "next/navigation";
 
-const TOKEN_PRICE = 500;
+const TOKEN_PRICE = 5000;
 
 function TokensContent() {
   const supabase = createClient();
@@ -234,7 +234,7 @@ function TokensContent() {
       <div className="bg-gray-800 rounded-xl p-5 mb-6">
         <h3 className="font-bold text-white mb-1">Convert to Tokens</h3>
         <p className="text-gray-400 text-xs mb-4">
-          ₦500 = 1 Token • 1 Token = 1 TMA round
+          ₦5,000 = 1 Token • 1 Token = 1 TMA round
         </p>
 
         <div className="flex items-center gap-3 mb-3">

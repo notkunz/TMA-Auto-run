@@ -7,7 +7,7 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const TOKEN_PRICE = 500
+const TOKEN_PRICE = 5000
 
 export async function POST(req: Request) {
   try {
