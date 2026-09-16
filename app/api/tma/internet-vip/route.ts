@@ -54,7 +54,12 @@ Reply with ONLY the letter and option text e.g "C. Radio rural forum"`,
       if (run?.results) {
         const updatedResults = run.results.map((r: any) => {
           if (r.questionNumber === question_number && r.question === question) {
-            return { ...r, internetAnswer: answer, source: "internet" };
+            return {
+              ...r,
+              answer,
+              internetAnswer: answer,
+              source: "internet",
+            };
           }
           return r;
         });

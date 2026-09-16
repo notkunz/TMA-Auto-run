@@ -79,7 +79,7 @@ const groupedEntries = Object.entries(grouped)
                     q.source === 'internet' ? 'bg-blue-900/30 border border-blue-500/30' :
                     'bg-green-900/30 border border-green-500/30'
                   }`}>
-                    <p className="text-white font-bold">{q.answer}</p>
+                    <p className="text-white font-bold">{q.internetAnswer || q.answer}</p>
                     <p className="text-xs mt-1 text-gray-400">
                       {q.source === 'question_bank' && '⚡ Question bank'}
                       {q.source === 'course_material' && '📖 Course material'}
